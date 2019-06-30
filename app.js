@@ -29,7 +29,7 @@ app.get('/', function (req, res) {
 });
 
 var job = schedule.scheduleJob({
-        hour: 22,
+        hour: 8,
         minute: 30
     }, pushMessage.push()
 );
