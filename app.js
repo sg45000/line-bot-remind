@@ -70,6 +70,7 @@ app.post('/callback', function (req, res) {
                 // 'text', 'image' ...
                 var message_type = req.body['events'][0]['message']['type'];
                 var message_text = req.body['events'][0]['message']['text'];
+                pushMessage.push(user_id);
                 if (req.body['events'][0]['source']['type'] == 'user') {
                     request.get(getProfileOption(user_id), function (error, response, body) {
                         if (!error && response.statusCode == 200) {
@@ -87,7 +88,7 @@ app.post('/callback', function (req, res) {
             var message = "hello, " + displayName + "さん"; // helloと返事する
             //var message = message_text; // おうむ返しする
             //var message = message_text + "[" + message_text.length + "文字]";
-            pushMessage.push();
+
             sendMessage.send(req, [messageTemplate.textMessage(message)]);
 
             // データベースを使う場合、下記のコードはコメントアウトしてください
