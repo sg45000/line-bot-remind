@@ -50,13 +50,19 @@ app.post('/callback', function (req, res) {
                 if (!validate_signature(req.headers['x-line-signature'], req.body)) {
                     return;
                 }
+                //フォロー時のデータの登録
                 if(req.body['events'][0]['type']==='follow'){
                     let userId=req.body['events'][0]['source']['userId']
-                    pgManager.registerUser(userId,()=>{
-                        sendMessage.send(req, [messageTemplate.textMessage("あなたのデータを登録しました")]);
+                    request.get(getProfileOption(userId), function (error, response, body) {
+                        if (!error && response.statusCode == 200) {
+                            let userName = body["displayName"];
+                            pgManager.registerUser(userId,userName,()=>{
+                                sendMessage.send(req, [messageTemplate.textMessage(`フォローありがとう。\nこれから${userName}さんの生活をサポートするよ！`)]);
+                            })
+                        }
                     })
-
                 }
+
                 // テキストか画像が送られてきた場合のみ返事をする
                 // if (
                 //     (req.body['events'][0]['type'] != 'message') ||
