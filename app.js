@@ -10,7 +10,7 @@ var schedule = require("node-schedule");
 var sendMessage = require('./lib/sendMessage.js');
 var messageTemplate = require('./lib/messageTemplate.js');
 var pushMessage = require('./lib/pushMessage.js');
-//var pgManager = require('./lib/postgresManager.js'); // データベースを使う時に必要
+var pgManager = require('./lib/postgresManager.js'); // データベースを使う時に必要
 
 // utilモジュールを使います。
 var util = require('util');
@@ -23,10 +23,10 @@ app.use(bodyParser.urlencoded({
 // JSONパーサー
 app.use(bodyParser.json());
 
-app.get('/', function (req, res) {
-    // herokuのルートディレクトリにアクセスした時に表示される
-    res.send('<h1>hello world</h1>');
-});
+// app.get('/', function (req, res) {
+//     // herokuのルートディレクトリにアクセスした時に表示される
+//     res.send('<h1>hello world</h1>');
+// });
 
 var job = schedule.scheduleJob({
         hour: 8,
@@ -50,34 +50,47 @@ app.post('/callback', function (req, res) {
                 if (!validate_signature(req.headers['x-line-signature'], req.body)) {
                     return;
                 }
-                // テキストか画像が送られてきた場合のみ返事をする
-                if (
-                    (req.body['events'][0]['type'] != 'message') ||
-                    ((req.body['events'][0]['message']['type'] != 'text') &&
-                        (req.body['events'][0]['message']['type'] != 'image'))
-                ) {
-                    return;
+                //フォロー時のデータの登録
+                if(req.body['events'][0]['type']==='follow'){
+                    let userId=req.body['events'][0]['source']['userId']
+                    request.get(getProfileOption(userId), function (error, response, body) {
+                        if (!error && response.statusCode == 200) {
+                            let userName = body["displayName"];
+                            pgManager.registerUser(userId,userName,()=>{
+                                sendMessage.send(req, [messageTemplate.textMessage(`フォローありがとう。\nこれから${userName}さんの生活をサポートするよ！`)]);
+                            })
+                        }
+                    })
                 }
+
+                // テキストか画像が送られてきた場合のみ返事をする
+                // if (
+                //     (req.body['events'][0]['type'] != 'message') ||
+                //     ((req.body['events'][0]['message']['type'] != 'text') &&
+                //         (req.body['events'][0]['message']['type'] != 'image'))
+                // ) {
+                //     return;
+                // }
 
                 // 特定の単語に反応させたい場合
                 //if (req.body['events'][0]['message']['text'].indexOf('please input some word') == -1) {
                 //    return;
                 //}
 
-                // ユーザIDを取得する
-                var user_id = req.body['events'][0]['source']['userId'];
-                var message_id = req.body['events'][0]['message']['id'];
-                // 'text', 'image' ...
-                var message_type = req.body['events'][0]['message']['type'];
-                var message_text = req.body['events'][0]['message']['text'];
-                pushMessage.push(user_id);
-                if (req.body['events'][0]['source']['type'] == 'user') {
-                    request.get(getProfileOption(user_id), function (error, response, body) {
-                        if (!error && response.statusCode == 200) {
-                            callback(req, body['displayName'], message_id, message_type, message_text);
-                        }
-                    });
-                }
+                //ユーザIDを取得する
+                // var user_id = req.body['events'][0]['source']['userId'];
+                // var message_id = req.body['events'][0]['message']['id'];
+                // // 'text', 'image' ...
+                // var message_type = req.body['events'][0]['message']['type'];
+                // var message_text = req.body['events'][0]['message']['text'];
+                // pushMessage.push(user_id);
+                // if (req.body['events'][0]['source']['type'] == 'user') {
+                //     request.get(getProfileOption(user_id), function (error, response, body) {
+                //         if (!error && response.statusCode == 200) {
+                //             callback(req, body['displayName'], message_id, message_type, message_text);
+                //         }
+                //     });
+                // }
             },
         ],
 
@@ -102,7 +115,7 @@ app.post('/callback', function (req, res) {
             // sendMessage.send(req, [messageTemplate.customQuestionMessage(title, imageUrl, choices, answers)]);
 
             // データベースを使って返信する場合、こちらのコメントを解除してください
-            //databaseSample(req, message_text);
+            // databaseSample(req, message_text);
 
             return;
         }
@@ -117,26 +130,26 @@ app.listen(app.get('port'), function () {
 function databaseSample(req, sendword) {
 
     // データベースにアクセスする
-    pgManager.get_words(function (result) {
+    pgManager.registerUser(function (result) {
 
-        if (result.rowCount === 0) {
-            sendMessage.send(req, [messageTemplate.textMessage("データはありません")]);
+        if (result.rowCount === 1) {
+            sendMessage.send(req, [messageTemplate.textMessage("あなたのデータを登録しました")]);
             return;
         }
 
         // ランダムに一件データを取得する
-        var randomId = getRandomInt(result.rowCount);
-        var r = result.rows[randomId];
+        // var randomId = getRandomInt(result.rowCount);
+        // var r = result.rows[randomId];
 
         // 送信データを生成し、送信する
-        sendMessage.send(req, [
-            messageTemplate.customQuestionMessage(
-                r.question_text,
-                r.imageurl,
-                [r.choice1, r.choice2, r.choice3, r.choice4],
-                [r.answer1, r.answer2, r.answer3, r.answer4]
-            )
-        ]);
+        // sendMessage.send(req, [
+        //     messageTemplate.customQuestionMessage(
+        //         r.question_text,
+        //         r.imageurl,
+        //         [r.choice1, r.choice2, r.choice3, r.choice4],
+        //         [r.answer1, r.answer2, r.answer3, r.answer4]
+        //     )
+        // ]);
     });
 }
 
