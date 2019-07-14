@@ -28,11 +28,32 @@ app.use(bodyParser.json());
 //     res.send('<h1>hello world</h1>');
 // });
 
-var job = schedule.scheduleJob({
-        hour: 8,
-        minute: 30
-    }, pushMessage.push()
-);
+    let all_user;
+
+    pgManager.getAllUser(schedulePush)
+
+    function schedulePush(result){
+        result.rows.forEach(user_obj=>{
+            registerScheduleJob(user_obj.line_user_id);
+        })
+    }
+
+    function registerScheduleJob(user_id){
+        var job = schedule.scheduleJob('*/30 * * * * *', (firedata)=>{pushMessage.push(user_id);
+
+            }
+        );
+        job.on("scheduled", function () {
+            console.log("予定が登録されました");
+        });
+        job.on("run", function () {
+            console.log("予定が実行されました");
+        });
+        job.on("canceled", function () {
+            console.log("予定がキャンセルされました");
+        });
+    }
+
 // function() {
 //   request.post(pushMessage.push(), function (error, response, body) {
 //     if (!error && response.statusCode == 200) {
