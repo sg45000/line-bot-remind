@@ -12,6 +12,7 @@ var messageTemplate = require('./lib/messageTemplate.js');
 var pushMessage = require('./lib/pushMessage.js');
 var pgManager = require('./lib/postgresManager.js'); // データベースを使う時に必要
 
+
 // utilモジュールを使います。
 var util = require('util');
 
@@ -22,6 +23,7 @@ app.use(bodyParser.urlencoded({
 }));
 // JSONパーサー
 app.use(bodyParser.json());
+
 
 // app.get('/', function (req, res) {
 //     // herokuのルートディレクトリにアクセスした時に表示される
@@ -71,6 +73,7 @@ app.post('/callback', function (req, res) {
                 if (!validate_signature(req.headers['x-line-signature'], req.body)) {
                     return;
                 }
+
                 //フォロー時のデータの登録
                 if(req.body['events'][0]['type']==='follow'){
                     let userId=req.body['events'][0]['source']['userId']
@@ -93,10 +96,12 @@ app.post('/callback', function (req, res) {
                 //     return;
                 // }
 
+
                 // 特定の単語に反応させたい場合
                 //if (req.body['events'][0]['message']['text'].indexOf('please input some word') == -1) {
                 //    return;
                 //}
+
 
                 //ユーザIDを取得する
                 // var user_id = req.body['events'][0]['source']['userId'];
@@ -112,6 +117,7 @@ app.post('/callback', function (req, res) {
                 //         }
                 //     });
                 // }
+
             },
         ],
 
@@ -136,7 +142,9 @@ app.post('/callback', function (req, res) {
             // sendMessage.send(req, [messageTemplate.customQuestionMessage(title, imageUrl, choices, answers)]);
 
             // データベースを使って返信する場合、こちらのコメントを解除してください
+
             // databaseSample(req, message_text);
+
 
             return;
         }
@@ -151,14 +159,17 @@ app.listen(app.get('port'), function () {
 function databaseSample(req, sendword) {
 
     // データベースにアクセスする
+
     pgManager.registerUser(function (result) {
 
         if (result.rowCount === 1) {
             sendMessage.send(req, [messageTemplate.textMessage("あなたのデータを登録しました")]);
+
             return;
         }
 
         // ランダムに一件データを取得する
+
         // var randomId = getRandomInt(result.rowCount);
         // var r = result.rows[randomId];
 
@@ -171,6 +182,7 @@ function databaseSample(req, sendword) {
         //         [r.answer1, r.answer2, r.answer3, r.answer4]
         //     )
         // ]);
+
     });
 }
 
