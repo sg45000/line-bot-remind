@@ -11,7 +11,7 @@ var sendMessage = require('./lib/sendMessage.js');
 var messageTemplate = require('./lib/messageTemplate.js');
 var pushMessage = require('./lib/pushMessage.js');
 var pgManager = require('./lib/postgresManager.js'); // データベースを使う時に必要
-
+var replyMessage = require('./lib/replyMessage.js')
 
 // utilモジュールを使います。
 var util = require('util');
@@ -30,21 +30,33 @@ app.use(bodyParser.json());
 //     res.send('<h1>hello world</h1>');
 // });
 
-    let all_user;
+    init();
 
-    pgManager.getAllUser(schedulePush)
 
-    function schedulePush(result){
-        result.rows.forEach(user_obj=>{
-            registerScheduleJob(user_obj.line_user_id);
-        })
+
+    function init(){
+        registerScheduleJob()
     }
 
-    function registerScheduleJob(user_id){
-        var job = schedule.scheduleJob('*/30 * * * * *', (firedata)=>{pushMessage.push(user_id);
+    async function getUserInfo(){
+        return await pgManager.getAllUser();
+    }
+
+    function registerScheduleJob(){
+        let job = schedule.scheduleJob('0 0 21 * * *', (firedata)=>{
+                getUserInfo()
+                    .then(all_users=> {
+                        console.log(all_users);
+                        all_users.rows.forEach((obj) => {
+                            pushMessage.askBackHomeTime(obj.line_user_id);
+
+                        })
+                    })
 
             }
         );
+
+
         job.on("scheduled", function () {
             console.log("予定が登録されました");
         });
@@ -87,6 +99,15 @@ app.post('/callback', function (req, res) {
                     })
                 }
 
+                //今日の予定のポストバック対応
+                if(req.body['events'][0]['type']==='postback'){
+                    pushMessage.reportBackHomeTime(req.body['events'][0].postback.data)
+                    let messages = ["ありがとなすー","がんば！","はやくかえってこい！"];
+                    let message = messages[Math.round(Math.random()*3)];
+                    replyMessage.replySimpleMessage(req,message)
+
+                }
+
                 // テキストか画像が送られてきた場合のみ返事をする
                 // if (
                 //     (req.body['events'][0]['type'] != 'message') ||
@@ -122,32 +143,32 @@ app.post('/callback', function (req, res) {
         ],
 
 
-        // 返事を生成する関数
-        function (req, displayName, message_id, message_type, message_text) {
-
-            var message = "hello, " + displayName + "さん"; // helloと返事する
-            //var message = message_text; // おうむ返しする
-            //var message = message_text + "[" + message_text.length + "文字]";
-
-            sendMessage.send(req, [messageTemplate.textMessage(message)]);
-
-            // データベースを使う場合、下記のコードはコメントアウトしてください
-            //sendMessage.send(req, [messageTemplate.textMessage(message), messageTemplate.quickMessage("質問に答えてね！")]);
-
-            // // flexメッセージを使う
-            // var title = "質問";
-            // var imageUrl = "https://pics.prcm.jp/2d801321d0793/72139800/jpeg/72139800.jpeg";
-            // var choices = ["選択肢1", "選択肢2", "選択肢3", "選択肢4"];
-            // var answers = ["回答1", "回答2", "回答3", "回答4"];
-            // sendMessage.send(req, [messageTemplate.customQuestionMessage(title, imageUrl, choices, answers)]);
-
-            // データベースを使って返信する場合、こちらのコメントを解除してください
-
-            // databaseSample(req, message_text);
-
-
-            return;
-        }
+        // // 返事を生成する関数
+        // function (req, displayName, message_id, message_type, message_text) {
+        //
+        //     var message = "hello, " + displayName + "さん"; // helloと返事する
+        //     //var message = message_text; // おうむ返しする
+        //     //var message = message_text + "[" + message_text.length + "文字]";
+        //
+        //     sendMessage.send(req, [messageTemplate.textMessage(message)]);
+        //
+        //     // データベースを使う場合、下記のコードはコメントアウトしてください
+        //     //sendMessage.send(req, [messageTemplate.textMessage(message), messageTemplate.quickMessage("質問に答えてね！")]);
+        //
+        //     // flexメッセージを使う
+        //     var title = "質問";
+        //     var imageUrl = "https://pics.prcm.jp/2d801321d0793/72139800/jpeg/72139800.jpeg";
+        //     var choices = ["選択肢1", "選択肢2", "選択肢3", "選択肢4"];
+        //     var answers = ["回答1", "回答2", "回答3", "回答4"];
+        //     sendMessage.send(req, [messageTemplate.customQuestionMessage(title, imageUrl, choices, answers)]);
+        //
+        //     // データベースを使って返信する場合、こちらのコメントを解除してください
+        //
+        //     // databaseSample(req, message_text);
+        //
+        //
+        //     return;
+        // }
     );
 });
 
