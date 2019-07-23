@@ -4,7 +4,7 @@
   "description": "xhack-database",
   "main": "app.js",
   "scripts": {
-    "startDev": "./ngrok http 8000 & nodemon app.js",
+    "startDev": "./ngrok http 8000 & sleep 10;nodemon app.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "shinsuke matsuda",

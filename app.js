@@ -45,12 +45,12 @@ app.use(bodyParser.json());
     }
 
     function registerScheduleJob(){
-        let job = schedule.scheduleJob('0 38 21 * * *', (firedata)=>{
+        let job = schedule.scheduleJob('* 2 9 * * *', (firedata)=>{
                 getUserInfo()
                     .then(all_users=> {
                         console.log(all_users);
                         all_users.rows.forEach((obj) => {
-                            pushMessage.askBackHomeTime(obj.line_user_id);
+                            pushMessage.pushQuestion(obj.line_user_id,1);
 
                         })
                     })
@@ -103,11 +103,18 @@ app.post('/callback', function (req, res) {
 
                 //今日の予定のポストバック対応
                 if(req.body['events'][0]['type']==='postback'){
-                    pushMessage.reportBackHomeTime(req.body['events'][0].postback.data)
-                    let messages = ["ありがとなすー","がんば！","はやくかえってこい！"];
-                    let message = messages[Math.round(Math.random()*3)];
-                    replyMessage.replySimpleMessage(req,message)
+                    let params = JSON.parse(req.body['events'][0].postback.data);
+                    pushMessage.reportBackHomeTime(params.answer);
 
+                    if(params.hasOwnProperty('next_id')){
+                        console.log("クエスチョン")
+                        replyMessage.replyQuestion(req,params.next_id);
+                    }else {
+                        console.log("シンプルリプライ")
+                        let messages = ["ありがとなすー", "がんば！", "はやくかえってこい！"];
+                        let message = messages[Math.round(Math.random() * 3)];
+                        replyMessage.replySimpleMessage(req, message);
+                    }
                 }
 
                 // テキストか画像が送られてきた場合のみ返事をする
