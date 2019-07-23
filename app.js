@@ -6,6 +6,7 @@ var crypto = require("crypto");
 var async = require('async');
 var schedule = require("node-schedule");
 
+if(process.env.TARGET_ENV !== 'production') require("dotenv").config();
 
 var sendMessage = require('./lib/sendMessage.js');
 var messageTemplate = require('./lib/messageTemplate.js');
@@ -35,6 +36,7 @@ app.use(bodyParser.json());
 
 
     function init(){
+
         registerScheduleJob()
     }
 
@@ -43,7 +45,7 @@ app.use(bodyParser.json());
     }
 
     function registerScheduleJob(){
-        let job = schedule.scheduleJob('0 0 21 * * *', (firedata)=>{
+        let job = schedule.scheduleJob('0 38 21 * * *', (firedata)=>{
                 getUserInfo()
                     .then(all_users=> {
                         console.log(all_users);
