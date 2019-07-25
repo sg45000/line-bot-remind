@@ -6,7 +6,7 @@ var crypto = require("crypto");
 var async = require('async');
 var schedule = require("node-schedule");
 
-if(process.env.TARGET_ENV !== 'production') require("dotenv").config();
+if(process.env.TARGET_ENV !== 'development') {require("dotenv").config();}
 
 var sendMessage = require('./lib/sendMessage.js');
 var messageTemplate = require('./lib/messageTemplate.js');
