@@ -46,7 +46,7 @@ app.use(bodyParser.json());
 
     function registerScheduleJob(){
         console.log("job登録前")
-        let job = schedule.scheduleJob("0 14 23 * * *", (firedata)=>{
+        let job = schedule.scheduleJob("0 22 23 * * *", (firedata)=>{
             console.log("job実行")
                 getUserInfo()
                     .then(all_users=> {
