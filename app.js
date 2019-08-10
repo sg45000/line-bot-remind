@@ -4,15 +4,18 @@ var bodyParser = require('body-parser');
 var request = require('request');
 var crypto = require("crypto");
 var async = require('async');
-var schedule = require("node-schedule");
 
-if(process.env.TARGET_ENV !== 'production') {require("dotenv").config();}
+
+if (process.env.TARGET_ENV !== 'production') {
+    require("dotenv").config();
+}
 
 var sendMessage = require('./lib/sendMessage.js');
 var messageTemplate = require('./lib/messageTemplate.js');
 var pushMessage = require('./lib/pushMessage.js');
 var pgManager = require('./lib/postgresManager.js'); // データベースを使う時に必要
-var replyMessage = require('./lib/replyMessage.js')
+var replyMessage = require('./lib/replyMessage.js');
+var registerScheduleJob = require('./lib/registerScheduleJob')();
 
 // utilモジュールを使います。
 var util = require('util');
@@ -25,61 +28,6 @@ app.use(bodyParser.urlencoded({
 // JSONパーサー
 app.use(bodyParser.json());
 
-
-// app.get('/', function (req, res) {
-//     // herokuのルートディレクトリにアクセスした時に表示される
-//     res.send('<h1>hello world</h1>');
-// });
-
-    init();
-
-
-
-    function init(){
-
-        registerScheduleJob()
-    }
-
-    async function getUserInfo(){
-        return await pgManager.getAllUser();
-    }
-
-    function registerScheduleJob(){
-        let job = schedule.scheduleJob('0 0 21 * * *', (firedata)=>{
-                getUserInfo()
-                    .then(all_users=> {
-                        console.log(all_users);
-                        all_users.rows.forEach((obj) => {
-                            pushMessage.pushQuestion(obj.line_user_id,1);
-
-                        })
-                    })
-
-            }
-        );
-
-
-        job.on("scheduled", function () {
-            console.log("予定が登録されました");
-        });
-        job.on("run", function () {
-            console.log("予定が実行されました");
-        });
-        job.on("canceled", function () {
-            console.log("予定がキャンセルされました");
-        });
-    }
-
-// function() {
-//   request.post(pushMessage.push(), function (error, response, body) {
-//     if (!error && response.statusCode == 200) {
-//       callback(req, body['displayName'], message_id, message_type, message_text);
-//     }
-//   });
-// }
-
-
-// async.waterfall([function(){}], function(){})
 app.post('/callback', function (req, res) {
     async.waterfall([
             function (callback) {
@@ -89,12 +37,12 @@ app.post('/callback', function (req, res) {
                 }
 
                 //フォロー時のデータの登録
-                if(req.body['events'][0]['type']==='follow'){
-                    let userId=req.body['events'][0]['source']['userId']
+                if (req.body['events'][0]['type'] === 'follow') {
+                    let userId = req.body['events'][0]['source']['userId']
                     request.get(getProfileOption(userId), function (error, response, body) {
                         if (!error && response.statusCode == 200) {
                             let userName = body["displayName"];
-                            pgManager.registerUser(userId,userName,()=>{
+                            pgManager.registerUser(userId, userName, () => {
                                 sendMessage.send(req, [messageTemplate.textMessage(`フォローありがとう。\nこれから${userName}さんの生活をサポートするよ！`)]);
                             })
                         }
@@ -102,124 +50,30 @@ app.post('/callback', function (req, res) {
                 }
 
                 //今日の予定のポストバック対応
-                if(req.body['events'][0]['type']==='postback'){
+                if (req.body['events'][0]['type'] === 'postback') {
                     let params = JSON.parse(req.body['events'][0].postback.data);
                     pushMessage.reportBackHomeTime(params.answer);
 
-                    if(params.hasOwnProperty('next_id')){
+                    if (params.hasOwnProperty('next_id')) {
                         console.log("クエスチョン")
-                        replyMessage.replyQuestion(req,params.next_id);
-                    }else {
+                        replyMessage.replyQuestion(req, params.next_id);
+                    } else {
                         console.log("シンプルリプライ")
                         let messages = ["ありがとなすー", "がんば！", "はやくかえってこい！"];
                         let message = messages[Math.round(Math.random() * 3)];
                         replyMessage.replySimpleMessage(req, message);
+                        registerScheduleJob.cancel();
+
                     }
                 }
-
-                // テキストか画像が送られてきた場合のみ返事をする
-                // if (
-                //     (req.body['events'][0]['type'] != 'message') ||
-                //     ((req.body['events'][0]['message']['type'] != 'text') &&
-                //         (req.body['events'][0]['message']['type'] != 'image'))
-                // ) {
-                //     return;
-                // }
-
-
-                // 特定の単語に反応させたい場合
-                //if (req.body['events'][0]['message']['text'].indexOf('please input some word') == -1) {
-                //    return;
-                //}
-
-
-                //ユーザIDを取得する
-                // var user_id = req.body['events'][0]['source']['userId'];
-                // var message_id = req.body['events'][0]['message']['id'];
-                // // 'text', 'image' ...
-                // var message_type = req.body['events'][0]['message']['type'];
-                // var message_text = req.body['events'][0]['message']['text'];
-                // pushMessage.push(user_id);
-                // if (req.body['events'][0]['source']['type'] == 'user') {
-                //     request.get(getProfileOption(user_id), function (error, response, body) {
-                //         if (!error && response.statusCode == 200) {
-                //             callback(req, body['displayName'], message_id, message_type, message_text);
-                //         }
-                //     });
-                // }
-
             },
         ],
-
-
-        // // 返事を生成する関数
-        // function (req, displayName, message_id, message_type, message_text) {
-        //
-        //     var message = "hello, " + displayName + "さん"; // helloと返事する
-        //     //var message = message_text; // おうむ返しする
-        //     //var message = message_text + "[" + message_text.length + "文字]";
-        //
-        //     sendMessage.send(req, [messageTemplate.textMessage(message)]);
-        //
-        //     // データベースを使う場合、下記のコードはコメントアウトしてください
-        //     //sendMessage.send(req, [messageTemplate.textMessage(message), messageTemplate.quickMessage("質問に答えてね！")]);
-        //
-        //     // flexメッセージを使う
-        //     var title = "質問";
-        //     var imageUrl = "https://pics.prcm.jp/2d801321d0793/72139800/jpeg/72139800.jpeg";
-        //     var choices = ["選択肢1", "選択肢2", "選択肢3", "選択肢4"];
-        //     var answers = ["回答1", "回答2", "回答3", "回答4"];
-        //     sendMessage.send(req, [messageTemplate.customQuestionMessage(title, imageUrl, choices, answers)]);
-        //
-        //     // データベースを使って返信する場合、こちらのコメントを解除してください
-        //
-        //     // databaseSample(req, message_text);
-        //
-        //
-        //     return;
-        // }
     );
 });
 
 app.listen(app.get('port'), function () {
     console.log('Node app is running');
 });
-
-// 実際にデータベースとのやりとりを行う
-function databaseSample(req, sendword) {
-
-    // データベースにアクセスする
-
-    pgManager.registerUser(function (result) {
-
-        if (result.rowCount === 1) {
-            sendMessage.send(req, [messageTemplate.textMessage("あなたのデータを登録しました")]);
-
-            return;
-        }
-
-        // ランダムに一件データを取得する
-
-        // var randomId = getRandomInt(result.rowCount);
-        // var r = result.rows[randomId];
-
-        // 送信データを生成し、送信する
-        // sendMessage.send(req, [
-        //     messageTemplate.customQuestionMessage(
-        //         r.question_text,
-        //         r.imageurl,
-        //         [r.choice1, r.choice2, r.choice3, r.choice4],
-        //         [r.answer1, r.answer2, r.answer3, r.answer4]
-        //     )
-        // ]);
-
-    });
-}
-
-// 引数に指定した値以下のランダムな数値を取得する
-function getRandomInt(max) {
-    return Math.floor(Math.random() * Math.floor(max));
-}
 
 // LINE Userのプロフィールを取得する
 function getProfileOption(user_id) {
