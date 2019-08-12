@@ -15,6 +15,7 @@ var messageTemplate = require('./lib/messageTemplate.js');
 var pushMessage = require('./lib/pushMessage.js');
 var pgManager = require('./lib/postgresManager.js'); // データベースを使う時に必要
 var replyMessage = require('./lib/replyMessage.js');
+var timeCheckUtil = require("./lib/util/timeCheckUtil")
 var registerScheduleJob = require('./lib/registerScheduleJob')();
 
 // utilモジュールを使います。
@@ -27,6 +28,12 @@ app.use(bodyParser.urlencoded({
 }));
 // JSONパーサー
 app.use(bodyParser.json());
+
+
+if(timeCheckUtil.time_inspection(0,0,20,59)){
+    registerScheduleJob.cancel();
+    console.log("終了時間")
+}
 
 app.post('/callback', function (req, res) {
     async.waterfall([
