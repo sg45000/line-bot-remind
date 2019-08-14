@@ -69,7 +69,7 @@ app.post('/callback', function (req, res) {
                         let messages = ["ありがとなすー", "がんば！", "はやくかえってこい！"];
                         let message = messages[Math.round(Math.random() * 3)];
                         replyMessage.replySimpleMessage(req, message);
-                        registerScheduleJob.cancel();
+                        if(registerScheduleJob)registerScheduleJob.cancel();
 
                     }
                 }
