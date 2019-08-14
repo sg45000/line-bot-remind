@@ -30,7 +30,7 @@ app.use(bodyParser.urlencoded({
 app.use(bodyParser.json());
 
 
-if(timeCheckUtil.time_inspection(0,0,20,59)){
+if(timeCheckUtil.time_inspection(0,0,20,59) && registerScheduleJob){
     registerScheduleJob.cancel();
     console.log("終了時間")
 }
