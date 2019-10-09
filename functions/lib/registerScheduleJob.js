@@ -8,12 +8,12 @@ moment.tz.setDefault('Asia/Tokyo');
 
 
 module.exports = function comeHomeQuestion() {
-    if (!timeCheckUtil.time_inspection(21, 0, 23, 0)) {
+    if (!timeCheckUtil.time_inspection(20, 0, 23, 0)) {
         console.log("時間外");
         return;
     }else {
         console.log("時間内");
-        let job = schedule.scheduleJob(' 0 */2 * * * *', (firedata) => {
+        let job = schedule.scheduleJob(' 0 */10 * * * *', (firedata) => {
                 pgManager.getAllUser()
                     .then(all_users => {
                         console.log(all_users);

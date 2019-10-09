@@ -10,13 +10,13 @@ if (process.env.TARGET_ENV !== 'production') {
     require("dotenv").config();
 }
 
-var sendMessage = require('./lib/sendMessage.js');
-var messageTemplate = require('./lib/messageTemplate.js');
-var pushMessage = require('./lib/pushMessage.js');
-var pgManager = require('./lib/postgresManager.js'); // データベースを使う時に必要
-var replyMessage = require('./lib/replyMessage.js');
-var timeCheckUtil = require("./lib/util/timeCheckUtil")
-var registerScheduleJob = require('./lib/registerScheduleJob')();
+var sendMessage = require('./functions/lib/sendMessage.js');
+var messageTemplate = require('./functions/lib/messageTemplate.js');
+var pushMessage = require('./functions/lib/pushMessage.js');
+var pgManager = require('./functions/lib/postgresManager.js'); // データベースを使う時に必要
+var replyMessage = require('./functions/lib/replyMessage.js');
+var timeCheckUtil = require("./functions/lib/util/timeCheckUtil")
+var registerScheduleJob = require('./functions/lib/registerScheduleJob')();
 
 // utilモジュールを使います。
 var util = require('util');
